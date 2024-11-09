@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+    <script type="text/javascript">
+      function draw() {
+        const gl = GL.create(); // WebGLコンテキストの作成
+
+        gl.ondraw = function () {
+          gl.clearColor(1.0, 1.0, 1.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          gl.translate(0.0, 0.0, -30.0);
+
+          // 座標軸を追加
+          gl.color(0.0, 0.0, 0.0); // 黒色
+          gl.begin(gl.LINES);
+          gl.vertex(100, 0, 0); // x軸
+          gl.vertex(-100, 0, 0);
+          gl.vertex(0, 100, 0); // y軸
+          gl.vertex(0, -100, 0);
+          gl.end();
+
+          gl.pushMatrix(); //変換行列をスタックに保存
+
+          gl.translate(1, 4, 0.0); // 平行移動
+          gl.rotate(90.0, 0.0, 0.0, 1.0); // 回転
+
+          // 回転移動させたものを並行移動させる
+
+          // 三角形の描画
+          gl.color(1.0, 0.0, 0.0); // 赤
+          gl.begin(gl.TRIANGLES);
+          gl.vertex(-0.5, -0.5, 0);
+          gl.vertex(0.5, -0.5, 0);
+          gl.vertex(0, 0.5, 0);
+          gl.end();
+
+          gl.popMatrix(); //変換行列をスタックから取り出す
+        };
+
+        // フルスクリーンで描画
+        gl.fullscreen();
+      }
+    </script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>

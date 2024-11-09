@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+    <script type="text/javascript">
+      function draw() {
+        const gl = GL.create();
+
+        gl.ondraw = function () {
+          //　背景色を白色に変更する
+          gl.clearColor(1.0, 1.0, 1.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+
+          // カメラの位置を調節
+          gl.translate(0.0, 0.0, -1000.0); // z軸負(画面の奥)にオブジェクトを配置<=>カメラを引く
+
+          // 赤色の正方形
+          function drawDot(x, y) {
+            gl.color(0.0, 0.0, 0.0, 0.0); //　黒色にする
+            gl.begin(gl.TRIANGLE_STRIP);
+            gl.vertex(x, y, 0.0);
+            gl.vertex(x + 10.0, y, 0.0);
+            gl.vertex(x, y + 10.0, 0.0);
+            gl.vertex(x + 10.0, y + 10.0, 0.0);
+            gl.end();
+          }
+
+          // 距離定数
+          const d = 100;
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              drawDot(d * i, d * j);
+            }
+          }
+        };
+
+        gl.fullscreen();
+      }
+    </script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>

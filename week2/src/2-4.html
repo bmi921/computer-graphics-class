@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+    <script type="text/javascript">
+      function draw() {
+        const gl = GL.create();
+
+        gl.ondraw = function () {
+          // 背景色を白色にする
+          gl.clearColor(1.0, 1.0, 1.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+
+          // z軸負(画面の奥)にオブジェクトを配置<=>カメラを引く
+          gl.translate(0.0, 0.0, -400.0);
+
+          // sin(x)を描画
+          function drawSin() {
+            const n = 1000; // 分割数
+            const xmin = -Math.PI; // xの最小値
+            const xmax = Math.PI; // xの最大値
+            const step = (xmax - xmin) / n;
+
+            gl.color(1.0, 0.0, 0.0, 1.0); // 赤色でsin(x)を描く
+            gl.begin(gl.POINTS);
+            for (let i = 0; i <= n; i++) {
+              let x = xmin + i * step;
+              let y = Math.sin(x);
+              gl.vertex(x * 30, y * 30, 0.0); // 30倍で拡大表示
+            }
+            gl.end();
+          }
+
+          // cos(x)を描画
+          function drawCos() {
+            const n = 1000;
+            const xmin = -Math.PI;
+            const xmax = Math.PI;
+            const step = (xmax - xmin) / n;
+
+            gl.color(0.0, 0.0, 1.0, 1.0); // 青色でcos(x)を描く
+            gl.begin(gl.POINTS);
+            for (let i = 0; i <= n; i++) {
+              let x = xmin + i * step;
+              let y = Math.cos(x);
+              gl.vertex(x * 30, y * 30, 0.0);
+            }
+            gl.end();
+          }
+
+          // tan(x)を描画
+          function drawTan() {
+            const n = 1000;
+            const xmin = -Math.PI;
+            const xmax = Math.PI;
+            const step = (xmax - xmin) / n;
+
+            gl.color(0.0, 1.0, 0.0, 1.0); // 緑色でtan(x)を描く
+            gl.begin(gl.POINTS);
+            for (let i = 0; i <= n; i++) {
+              let x = xmin + i * step;
+              let y = Math.tan(x);
+
+              // tan(x)が非常に大きくなる場所では描画しない
+              if (Math.abs(y) < 10) {
+                gl.vertex(x * 30, y * 30, 0.0);
+              }
+            }
+            gl.end();
+          }
+
+          // 各関数を描画
+          drawSin();
+          drawCos();
+          drawTan();
+        };
+
+        gl.fullscreen();
+      }
+    </script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>

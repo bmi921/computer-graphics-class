@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+    <script type="text/javascript">
+      function draw() {
+        const gl = GL.create();
+
+        gl.ondraw = function () {
+          // 背景色を黒色にする
+          gl.clearColor(0.0, 0.0, 0.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+
+          gl.translate(0.0, 0.0, -100.0); // z軸負(画面の奥)にオブジェクトを配置<=>カメラを引く
+          gl.color(1.0, 1.0, 0.0, 0.0); // 黄色にする
+
+          function circle(x, y) {
+            const r = 5;
+            const n = 5;
+            gl.begin(gl.TRIANGLE_FAN);
+            gl.vertex(x, y, 0.0);
+            for (let i = 0; i <= n; i++) {
+              rad = (Math.PI * 2 * i) / n;
+              let px = r * Math.cos(rad);
+              let py = r * Math.sin(rad);
+              gl.vertex(px, py, 0.0);
+            }
+            gl.end();
+          }
+          circle(0, 0);
+        };
+
+        gl.fullscreen();
+      }
+    </script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>
