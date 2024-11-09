@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+    <script type="text/javascript">
+      let gl; // WebGLコンテキスト
+      let data; // 読み込んだデータを格納する変数
+
+      // 1)ファイルの読み込み
+      function loadSTL(event) {
+        const file = event.target.files[0]; // 選択されたファイルを取得
+        if (file) {
+          if (!file.name.endsWith(".stl")) {
+            // STLファイルでない場合の警告
+            alert("Please select a valid STL file.");
+            return;
+          }
+          const reader = new FileReader(); // ファイルリーダーのインスタンスを作成
+          reader.onload = function (e) {
+            data = e.target.result; // 読み込んだデータを格納
+            draw(); // WebGLの描画を開始
+          };
+          reader.readAsText(file); // ファイルをテキストとして読み込む
+        }
+      }
+
+      // 2)STLデータのパース(STLデータを頂点座標の配列に変換)
+      function parseSTL(data) {
+        const vertices = []; // 頂点配列の初期化
+        const faces = []; // 三角形のインデックスを格納する配列
+        const lines = data.split("\n"); // データを行ごとに分割
+
+        let currentFace = [];
+        for (let line of lines) {
+          line = line.trim(); // 行の前後の空白を削除
+          if (line.startsWith("vertex")) {
+            const parts = line.split(/\s+/); // 空白で分割
+            const x = parseFloat(parts[1]); // 文字列を実数に変換
+            const y = parseFloat(parts[2]);
+            const z = parseFloat(parts[3]);
+            vertices.push([x, y, z]); // 頂点を配列に追加
+
+            // 3頂点が揃うごとに1つの三角形として登録
+            currentFace.push(vertices.length - 1);
+            if (currentFace.length === 3) {
+              faces.push([...currentFace]);
+              currentFace = [];
+            }
+          }
+        }
+        return { vertices, faces };
+      }
+
+      // 3)STLデータのワイヤフレーム描画
+      function drawWireframeObj(vertices, faces) {
+        gl.begin(gl.LINES); // ワイヤフレームなのでLINEモードで描画
+        for (let i = 0; i < faces.length; i++) {
+          const [v0, v1, v2] = faces[i]; // 三角形の各頂点インデックス
+          gl.vertex(vertices[v0][0], vertices[v0][1], vertices[v0][2]);
+          gl.vertex(vertices[v1][0], vertices[v1][1], vertices[v1][2]);
+
+          gl.vertex(vertices[v1][0], vertices[v1][1], vertices[v1][2]);
+          gl.vertex(vertices[v2][0], vertices[v2][1], vertices[v2][2]);
+
+          gl.vertex(vertices[v2][0], vertices[v2][1], vertices[v2][2]);
+          gl.vertex(vertices[v0][0], vertices[v0][1], vertices[v0][2]);
+        }
+        gl.end();
+      }
+
+      function draw_axis() {
+        gl.begin(gl.LINES); // x軸
+        gl.color(1.0, 0.0, 0.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(1.0, 0.0, 0.0);
+        gl.end();
+        gl.begin(gl.LINES); // y軸
+        gl.color(0.0, 1.0, 0.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(0.0, 1.0, 0.0);
+        gl.end();
+        gl.begin(gl.LINES); // z軸
+        gl.color(0.0, 0.5, 1.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(0.0, 0.0, 1.0);
+        gl.end();
+      }
+
+      function draw() {
+        gl = GL.create();
+        gl.enable(gl.DEPTH_TEST);
+
+        let angleY = 0,
+          zoom = 0.5;
+        gl.onupdate = function (s) {
+          angleY += 50 * s;
+          if (GL.keys.Z) zoom += 0.01;
+          else if (GL.keys.X) zoom -= 0.01;
+        };
+
+        gl.matrixMode(gl.PROJECTION);
+        gl.loadIdentity();
+        gl.perspective(
+          45.0,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          100.0
+        );
+
+        gl.matrixMode(gl.MODELVIEW);
+        gl.loadIdentity();
+        gl.lookAt(1.0, 1.5, 3.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+
+        const { vertices, faces } = parseSTL(data); // 2)STLデータをパース
+
+        gl.ondraw = function () {
+          gl.clearColor(0.0, 0.0, 0.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+          gl.pushMatrix();
+          gl.rotate(angleY, 0.0, 1.0, 0.0);
+          gl.scale(zoom, zoom, zoom);
+
+          gl.pushMatrix();
+          draw_axis();
+          gl.popMatrix();
+
+          gl.pushMatrix();
+          gl.color(1.0, 1.0, 0.0, 1.0);
+          drawWireframeObj(vertices, faces); // 3)ワイヤフレーム描画
+          gl.popMatrix();
+
+          gl.popMatrix();
+        };
+
+        gl.fullscreen();
+        gl.animate();
+      }
+    </script>
+  </head>
+  <body>
+    <input type="file" id="fileInput" accept=".stl" onchange="loadSTL(event)" />
+    <!-- 1)ファイルの入力 -->
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>
