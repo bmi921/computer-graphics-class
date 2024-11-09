@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+    <script type="text/javascript">
+      let gl; // WebGLコンテキスト
+
+      //立方体の描画を関数化
+      function drawCube() {
+        // 前面
+        gl.pushMatrix();
+        gl.begin(gl.LINE_LOOP);
+        gl.vertex(-0.5, -0.5, 0.5);
+        gl.vertex(0.5, -0.5, 0.5);
+        gl.vertex(0.5, 0.5, 0.5);
+        gl.vertex(-0.5, 0.5, 0.5);
+        gl.end();
+        // 背面
+        gl.begin(gl.LINE_LOOP);
+        gl.vertex(-0.5, -0.5, -0.5);
+        gl.vertex(0.5, -0.5, -0.5);
+        gl.vertex(0.5, 0.5, -0.5);
+        gl.vertex(-0.5, 0.5, -0.5);
+        gl.end();
+        // 側面
+        gl.begin(gl.LINES);
+        gl.vertex(-0.5, -0.5, 0.5);
+        gl.vertex(-0.5, -0.5, -0.5);
+
+        gl.vertex(0.5, -0.5, 0.5);
+        gl.vertex(0.5, -0.5, -0.5);
+
+        gl.vertex(0.5, 0.5, 0.5);
+        gl.vertex(0.5, 0.5, -0.5);
+
+        gl.vertex(-0.5, 0.5, 0.5);
+        gl.vertex(-0.5, 0.5, -0.5);
+        gl.end();
+        gl.popMatrix();
+      }
+      function drawPyramid() {
+        // 底面
+        gl.pushMatrix();
+        gl.translate(0, -0.5, 0);
+        gl.begin(gl.LINE_LOOP);
+        gl.vertex(-0.5, 0, -0.5);
+        gl.vertex(0.5, 0, -0.5);
+        gl.vertex(0.5, 0, 0.5);
+        gl.vertex(-0.5, 0, 0.5);
+        gl.end();
+
+        // 側面
+        gl.begin(gl.LINES);
+        gl.vertex(-0.5, 0, -0.5);
+        gl.vertex(0, 1, 0);
+
+        gl.vertex(0.5, 0, -0.5);
+        gl.vertex(0, 1, 0);
+
+        gl.vertex(0.5, 0, 0.5);
+        gl.vertex(0, 1, 0);
+
+        gl.vertex(-0.5, 0, 0.5);
+        gl.vertex(0, 1, 0);
+        gl.end();
+        gl.popMatrix();
+      }
+      function drawSphere() {
+        // 経線
+        n = 20; // step数
+        r = 0.5; // 半径
+        gl.pushMatrix();
+        for (let j = 0; j < n; j++) {
+          gl.rotate(10, 0, 1, 0);
+          gl.begin(gl.LINE_LOOP);
+          for (let i = 0; i < n; i++) {
+            let rad = (Math.PI * 2 * i) / n;
+            let py = r * Math.cos(rad);
+            let pz = r * Math.sin(rad);
+            gl.vertex(0, py, pz);
+          }
+          gl.end();
+        }
+
+        // 緯線
+        const max_h = 0.5;
+        const min_h = -0.5;
+        for (let i = 0; i < n; i++) {
+          gl.begin(gl.LINE_LOOP);
+          let fai = (Math.PI * i) / n;
+          let d_r = r * Math.sin(fai);
+          let h = r * Math.cos(fai);
+          for (let j = 0; j < n; j++) {
+            let theta = (Math.PI * 2 * j) / n;
+            let x = d_r * Math.cos(theta);
+            let z = d_r * Math.sin(theta);
+            gl.vertex(x, h, z);
+          }
+          gl.end();
+        }
+        gl.popMatrix();
+      }
+      // 課題4-2 xyz軸の描画を関数化して実行する
+      function drawAxis() {
+        // X軸
+        gl.begin(gl.LINES);
+        gl.color(1.0, 0.0, 0.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(1.0, 0.0, 0.0);
+        gl.end();
+        // Y軸
+        gl.begin(gl.LINES);
+        gl.color(0.0, 1.0, 0.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(0.0, 1.0, 0.0);
+        gl.end();
+        // Z軸
+        gl.begin(gl.LINES);
+        gl.color(0.0, 0.5, 1.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(0.0, 0.0, 1.0);
+        gl.end();
+      }
+
+      function draw() {
+        gl = GL.create(); // WebGLコンテキストの作成
+
+        // ビューと投影の設定
+        gl.matrixMode(gl.PROJECTION);
+        gl.loadIdentity();
+        gl.perspective(
+          45.0,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          100.0
+        );
+
+        gl.matrixMode(gl.MODELVIEW);
+        gl.loadIdentity();
+        gl.lookAt(
+          1.0,
+          1.5,
+          3.0, // カメラ位置
+          0.0,
+          0.0,
+          0.0, // 注視点
+          0.0,
+          1.0,
+          0.0
+        ); // 上方向ベクトル
+
+        gl.ondraw = function () {
+          // 背景色を設定
+          gl.clearColor(0.0, 0.0, 0.0, 1.0); // 黒
+          gl.clear(gl.COLOR_BUFFER_BIT);
+
+          //立方体の描画（関数の呼び出し）
+          gl.color(1.0, 1.0, 0.0, 1.0);
+
+          gl.pushMatrix();
+          gl.translate(0, 0, 0);
+          drawCube();
+          gl.popMatrix();
+
+          gl.pushMatrix();
+          gl.translate(1.2, 0, 0);
+          gl.scale(1, -1, 1);
+          drawPyramid();
+          gl.popMatrix();
+
+          gl.pushMatrix();
+          gl.translate(-1.2, 0, 0);
+          drawSphere();
+          gl.popMatrix();
+
+          drawAxis();
+        };
+
+        // フルスクリーンで描画
+        gl.fullscreen();
+      }
+    </script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>

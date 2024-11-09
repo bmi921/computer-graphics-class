@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+    <script type="text/javascript">
+      let gl; // WebGLコンテキスト
+
+      //立方体の描画を関数化
+      function drawPyramid() {
+        // 底面
+        gl.pushMatrix();
+        gl.begin(gl.LINE_LOOP);
+        gl.vertex(-0.5, 0, -0.5);
+        gl.vertex(0.5, 0, -0.5);
+        gl.vertex(0.5, 0, 0.5);
+        gl.vertex(-0.5, 0, 0.5);
+        gl.end();
+
+        // 側面
+        gl.begin(gl.LINES);
+        gl.vertex(-0.5, 0, -0.5);
+        gl.vertex(0, 1, 0);
+
+        gl.vertex(0.5, 0, -0.5);
+        gl.vertex(0, 1, 0);
+
+        gl.vertex(0.5, 0, 0.5);
+        gl.vertex(0, 1, 0);
+
+        gl.vertex(-0.5, 0, 0.5);
+        gl.vertex(0, 1, 0);
+        gl.end();
+        gl.popMatrix();
+      }
+      // 課題4-2 xyz軸の描画を関数化して実行する
+      function drawAxis() {
+        // X軸
+        gl.begin(gl.LINES);
+        gl.color(1.0, 0.0, 0.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(1.0, 0.0, 0.0);
+        gl.end();
+        // Y軸
+        gl.begin(gl.LINES);
+        gl.color(0.0, 1.0, 0.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(0.0, 1.0, 0.0);
+        gl.end();
+        // Z軸
+        gl.begin(gl.LINES);
+        gl.color(0.0, 0.5, 1.0, 1.0);
+        gl.vertex(0.0, 0.0, 0.0);
+        gl.vertex(0.0, 0.0, 1.0);
+        gl.end();
+      }
+
+      function draw() {
+        gl = GL.create(); // WebGLコンテキストの作成
+
+        // ビューと投影の設定
+        //　(3,3,3)から(0,0,0)をz軸上に見ている設定
+        gl.matrixMode(gl.PROJECTION);
+        gl.loadIdentity();
+        gl.perspective(
+          60.0, // 視野角
+          window.innerWidth / window.innerHeight, // アスペクト
+          0.1, // カメラとの最短距離
+          100.0 // カメラとの最長距離
+        );
+
+        gl.matrixMode(gl.MODELVIEW);
+        gl.loadIdentity();
+        gl.lookAt(
+          3.0,
+          3.0,
+          3.0, // カメラ位置
+          0.0,
+          0.0,
+          0.0, // 注視点
+          0.0,
+          0.0,
+          1.0
+        ); // 上方向ベクトル
+
+        gl.ondraw = function () {
+          // 背景色を設定
+          gl.clearColor(0.0, 0.0, 0.0, 1.0); // 黒
+          gl.clear(gl.COLOR_BUFFER_BIT);
+
+          //立方体の描画（関数の呼び出し）
+          gl.translate(0.5, 0, 1);
+          gl.color(1.0, 1.0, 0.0, 1.0);
+          drawPyramid();
+          drawAxis();
+        };
+
+        // フルスクリーンで描画
+        gl.fullscreen();
+      }
+    </script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>
