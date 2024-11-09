@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+    <script type="text/javascript">
+      const segments = 15; // Number of segments for approximating the circle
+      const radius = 0.5;
+      const height = 2.0;
+      const coneHeight = 2.0; // 円錐の高さ
+      const coneRadius = 0.5; // 円錐の底面の半径
+
+      function draw() {
+        const gl = GL.create();
+        let angleX = 30.0,
+          angleY = 45.0;
+        let zoom = 1.0;
+        let offsetY = 0.0;
+
+        gl.onupdate = function (s) {
+          angleY += 50 * s;
+          if (GL.keys.UP) angleX -= 5.0;
+          if (GL.keys.DOWN) angleX += 5.0;
+          if (GL.keys.LEFT) angleY -= 5.0;
+          if (GL.keys.RIGHT) angleY += 5.0;
+          if (GL.keys.Z) zoom += 0.01;
+          else if (GL.keys.X) zoom -= 0.01;
+
+          if (GL.keys.D) offsetY -= 0.05; // 2番目の円柱の移動
+        };
+
+        gl.ondraw = function () {
+          gl.clearColor(1.0, 1.0, 1.0, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+          gl.loadIdentity();
+          gl.translate(0.0, 0.0, -5.0);
+          gl.rotate(angleX, 1.0, 0.0, 0.0);
+          gl.rotate(angleY, 0.0, 1.0, 0.0);
+          gl.scale(zoom, zoom, zoom);
+
+          // 1. 円柱の描画
+          drawCylinder(gl, radius, height, 1.0, 0.0, 0.0); // 赤色
+
+          // 2. 円錐の描画（円柱の上に配置）
+          gl.pushMatrix();
+          gl.translate(0.0, height / 2 + coneHeight / 2 - 1, 0.0); // 円柱の上に円錐を配置
+          drawCone(gl, coneRadius, coneHeight, 1.0, 0.5, 0.0); // オレンジ色
+          gl.popMatrix();
+
+          // 羽の描画
+          //   gl.pushMatrix();
+          drawWing(gl);
+          //   gl.popMatrix();
+
+          // 2番目の円柱の描画
+          gl.pushMatrix();
+          gl.translate(0.0, -height + offsetY, 0.0); // 2番目の円柱を下に配置
+          drawCylinder(gl, radius, height, 0.0, 1.0, 0.0); // 緑色
+          gl.popMatrix();
+        };
+
+        gl.fullscreen();
+        gl.animate();
+        gl.enable(gl.DEPTH_TEST);
+      }
+
+      // 円柱を描画する関数
+      function drawCylinder(gl, radius, height, r, g, b) {
+        const segments = 15;
+        for (let i = 0; i < segments; i++) {
+          const angle1 = (i * 2 * Math.PI) / segments;
+          const angle2 = ((i + 1) * 2 * Math.PI) / segments;
+
+          // 上面
+          gl.begin(gl.TRIANGLES);
+          gl.color(r, g, b);
+          gl.vertex(0.0, height / 2, 0.0);
+          gl.vertex(
+            radius * Math.cos(angle1),
+            height / 2,
+            radius * Math.sin(angle1)
+          );
+          gl.vertex(
+            radius * Math.cos(angle2),
+            height / 2,
+            radius * Math.sin(angle2)
+          );
+          gl.end();
+
+          // 底面
+          gl.begin(gl.TRIANGLES);
+          gl.color(0.0, 1.0, 0.0);
+          gl.vertex(0.0, -height / 2, 0.0);
+          gl.vertex(
+            radius * Math.cos(angle1),
+            -height / 2,
+            radius * Math.sin(angle1)
+          );
+          gl.vertex(
+            radius * Math.cos(angle2),
+            -height / 2,
+            radius * Math.sin(angle2)
+          );
+          gl.end();
+
+          // 側面
+          gl.begin(gl.TRIANGLES);
+          gl.color(0.0, 0.0, 1.0);
+          gl.vertex(
+            radius * Math.cos(angle1),
+            height / 2,
+            radius * Math.sin(angle1)
+          );
+          gl.vertex(
+            radius * Math.cos(angle1),
+            -height / 2,
+            radius * Math.sin(angle1)
+          );
+          gl.vertex(
+            radius * Math.cos(angle2),
+            height / 2,
+            radius * Math.sin(angle2)
+          );
+          gl.end();
+
+          gl.begin(gl.TRIANGLES);
+          gl.color(0.0, 0.0, 1.0);
+          gl.vertex(
+            radius * Math.cos(angle1),
+            -height / 2,
+            radius * Math.sin(angle1)
+          );
+          gl.vertex(
+            radius * Math.cos(angle2),
+            -height / 2,
+            radius * Math.sin(angle2)
+          );
+          gl.vertex(
+            radius * Math.cos(angle2),
+            height / 2,
+            radius * Math.sin(angle2)
+          );
+          gl.end();
+        }
+      }
+
+      // 円錐を描画する関数
+      function drawCone(gl, radius, height, r, g, b) {
+        const segments = 15;
+        for (let i = 0; i < segments; i++) {
+          const angle1 = (i * 2 * Math.PI) / segments;
+          const angle2 = ((i + 1) * 2 * Math.PI) / segments;
+
+          // 円錐の底面（三角形）
+          gl.begin(gl.TRIANGLES);
+          gl.color(r, g, b);
+          gl.vertex(0.0, height, 0.0); // 頂点
+          gl.vertex(radius * Math.cos(angle1), 0.0, radius * Math.sin(angle1)); // 底面1
+          gl.vertex(radius * Math.cos(angle2), 0.0, radius * Math.sin(angle2)); // 底面2
+          gl.end();
+        }
+      }
+      // 三角形の羽を描画する関数
+      function drawWing(gl) {
+        gl.begin(gl.TRIANGLES);
+        gl.color(0.5, 0.5, 1.0); // 羽の色
+        gl.vertex(0.0, -1, 0.0); // 先端
+        gl.vertex(0, -1, -1); // 左下
+        gl.vertex(0, 2, 0); // 左上
+        gl.end();
+
+        gl.begin(gl.TRIANGLES);
+        gl.color(0.5, 0.5, 1.0); // 羽の色
+        gl.vertex(0.0, -1, 0.0); // 先端
+        gl.vertex(0, -1, 1); // 左下
+        gl.vertex(0, 2, 0); // 左上
+        gl.end();
+      }
+    </script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>
