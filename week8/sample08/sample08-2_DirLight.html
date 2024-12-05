@@ -34,8 +34,9 @@
       function draw() {
         gl = GL.create();
 
-        // const mesh = GL.Mesh.cube({normals:true});  // 立方体（法線ベクトル生成）
-        const mesh = GL.Mesh.cube({ normals: false }); // 立方体（法線ベクトル生成）
+        // const mesh = GL.Mesh.cube({ normals: true, colors: true }); // 立方体（法線ベクトル生成）
+        // const mesh = GL.Mesh.sphere({ normals: true, detail: 10 }); // 立方体（法線ベクトル生成しない）
+        const mesh = GL.Mesh.plane({ normals: true }); // 立方体（法線ベクトル生成しない）
         const shader = new GL.Shader("vertexShader", "fragmentShader"); // シェーダの定義
 
         gl.ondraw = function () {
