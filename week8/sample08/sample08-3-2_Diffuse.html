@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  void main() {
+    vNormal = normalize(gl_NormalMatrix * gl_Normal);
+    vPosition = vec3(gl_ModelViewMatrix * gl_Vertex);
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+  }
+</script>
+<script id="fragmentShader" type="x-shader/x-fragment">
+  // 頂点シェーダーから受け取る変数
+  varying vec3 vNormal;     // 単位法線ベクトル
+  varying vec3 vPosition;   // モデルビュー座標系での頂点位置
+
+  void main() {
+    vec3 ambientLight = vec3(0.0, 0.0, 1.0) * 0.5;  // 環境光の設定（青色光 * 強度0.5）
+    vec3 lightPosition = vec3(10.0, 10.0, 10.0);    // 光源の位置を指定
+    vec3 diffLight = vec3(1.0, 0.0, 0.0);           // 光源の色（赤色）
+
+    vec3 lightDir = normalize(lightPosition - vPosition); // 頂点から光源への単位方向ベクトルを計算
+    
+    // 拡散反射の強度
+    float diff = max(dot(vNormal, lightDir), 0.0);  // 法線ベクトルと光源方向ベクトルの内積を計算
+    vec3 diffuse = diffLight * diff;      // 拡散反射の色を計算（光源の色 * 拡散強度）
+
+    vec3 color = ambientLight + diffuse;  // 環境光と拡散反射光を合成
+    gl_FragColor = vec4(color, 1.0);      // ピクセルの色を設定（RGBA形式、不透明度1.0）
+  }
+</script>
+
+<script type="text/javascript">
+let gl;  // WebGLコンテキスト
+
+function draw() {
+  gl = GL.create();  // WebGLコンテキストの作成
+
+  const mesh = GL.Mesh.sphere({normals: true, detail: 30});  // 球
+  const shader = new GL.Shader('vertexShader','fragmentShader');
+
+  gl.ondraw = function() {
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.loadIdentity();
+    gl.translate(0, 0, -5);
+
+    shader.draw(mesh);
+  };
+  
+  gl.fullscreen();
+  gl.animate();
+  gl.enable(gl.DEPTH_TEST);
+}
+
+</script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>
