@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+
+    <!-- 頂点シェーダーは各頂点の位置を画面に投影する役割を持つ -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+      void main() {
+        // 頂点の座標をモデルビュー投影行列で変換し、画面上の位置を計算
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+
+        // gl_ModelViewProjectionMatrix: モデルビュー行列と投影行列を掛け合わせた行列
+        // gl_Vertex: 頂点の位置（モデル空間）
+      }
+    </script>
+
+    <!-- フラグメントシェーダーは各ピクセルの色を計算する役割を持つ -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      void main() {
+        // ピクセルの色を白色 (1.0, 1.0, 1.0, 1.0) に設定
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+
+        // vec4: 4つの実数成分をもつベクトル型, RGBA（赤、緑、青、不透明度）を表す
+      }
+    </script>
+
+    <script type="text/javascript">
+      let gl;
+
+      function draw() {
+        gl = GL.create();
+
+        const mesh = GL.Mesh.cube(); // 立方体のメッシュオブジェクトを作成
+        const shader = new GL.Shader("vertexShader", "fragmentShader"); // シェーダの定義
+
+        gl.ondraw = function () {
+          gl.clearColor(0.2, 0.2, 0.2, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+          gl.loadIdentity();
+          gl.translate(0, 0, -10);
+          gl.rotate(30, 1, 0, 0);
+          gl.rotate(20, 0, 1, 0);
+
+          shader.draw(mesh); // シェーダにより立方体を描画
+        };
+
+        gl.fullscreen();
+        gl.enable(gl.DEPTH_TEST);
+      }
+    </script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+  varying vec3 normal;    // フラグメントシェーダに法線ベクトル渡すための変数
+  void main() {
+    normal = gl_NormalMatrix * gl_Normal;                     // 法線ベクトルをモデルビュー行列に変換
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;   // 頂点の座標を画面に投影
+  }
+</script>
+<script id="fragmentShader" type="x-shader/x-fragment">
+  varying vec3 normal;      // 頂点シェーダから渡された法線ベクトル
+  void main() {
+    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));               // 光源の方向を単位ベクトル化
+    float intensity = max( dot(normalize(normal), lightDir), 0.0); // 法線ベクトルと光源方向の内積を計算（光の強さ）
+    gl_FragColor = vec4(intensity, intensity, intensity, 1.0);    // ピクセルの色を計算（光の強さを反映）
+
+    // GLSL組み込み関数
+    // normalize(): ベクトルを単位ベクトルに変換
+    // dot(a,b): ベクトルaとbの内積 
+    // max(a,b): aとbの最大値を返す（ここではmaxを使って内積値が負のとき0を返す）
+  }
+</script>
+
+<script type="text/javascript">
+let gl;
+
+function draw() {
+  gl = GL.create(); 
+  let angleX = 30, angleY= 20
+
+  const cube = GL.Mesh.cube({normals:true});  // 立方体
+  const shader = new GL.Shader('vertexShader','fragmentShader');  // シェーダの定義
+
+  gl.onmousemove = function(e) {
+    if (e.dragging) {
+        angleY += e.deltaX;
+        angleX += e.deltaY;
+    }
+  };
+  gl.ondraw = function() {
+    gl.clearColor(0.9, 0.9, 0.9, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.loadIdentity();
+    gl.translate(0, 0, -10);
+    gl.rotate(angleX, 1, 0, 0);
+    gl.rotate(angleY, 0, 1, 0);
+
+    shader.draw(cube); 
+
+    draw_axis();    // 座標軸の描画
+  };
+  
+  gl.fullscreen();
+  gl.animate();
+  gl.enable(gl.DEPTH_TEST);
+}
+// 座標軸の描画
+function draw_axis(){
+    gl.begin(gl.LINES);
+        gl.color(1.0, 0.0, 0.0, 1.0); 
+        gl.vertex(0.0, 0.0, 0.0); gl.vertex(5.0, 0.0, 0.0);
+    gl.end();
+    gl.begin(gl.LINES);
+        gl.color(0.0, 1.0, 0.0, 1.0); 
+        gl.vertex(0.0, 0.0, 0.0); gl.vertex(0.0, 5.0, 0.0);
+    gl.end();
+    gl.begin(gl.LINES);
+        gl.color(0.0, 0.5, 1.0, 1.0); 
+        gl.vertex(0.0, 0.0, 0.0); gl.vertex(0.0, 0.0, 5.0);
+    gl.end();
+}
+</script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>

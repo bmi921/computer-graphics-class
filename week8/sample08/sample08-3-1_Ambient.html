@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="lightgl.js"></script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+  varying vec3 vNormal;     // 頂点の法線 (フラグメントシェーダに渡す)
+  varying vec3 vPosition;   // 頂点の位置 (フラグメントシェーダに渡す)
+  void main() {
+    vNormal = normalize(gl_NormalMatrix * gl_Normal);       // 法線を正規化しフラグメントシェーダに渡す
+    vPosition = vec3(gl_ModelViewMatrix * gl_Vertex);       // 頂点位置をモデルビュー座標系に変換
+    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex; 
+  }
+</script>
+<script id="fragmentShader" type="x-shader/x-fragment">
+  varying vec3 vNormal;   // 頂点シェーダから渡される法線データ
+  varying vec3 vPosition; // 頂点シェーダから渡される位置データ
+  void main() {
+    vec3 ambientLight = vec3(0.0, 0.0, 1.0) * 0.5;  // 環境光（Ambient）の色と強度
+    vec3 color = ambientLight;        // 現在のピクセルの色に環境光を適用
+    gl_FragColor = vec4(color, 1.0);  // ピクセルの色を設定（RGBA形式、不透明度1.0）
+  }
+</script>
+
+<script type="text/javascript">
+let gl;
+
+function draw() {
+  gl = GL.create();
+
+  const mesh = GL.Mesh.sphere( {normals: true, detail: 30} );  // 球
+  const shader = new GL.Shader('vertexShader','fragmentShader');
+
+  gl.ondraw = function() {
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.loadIdentity();
+    gl.translate(0, 0, -5);
+
+    shader.draw(mesh);
+  };
+  
+  gl.fullscreen();
+  gl.animate();
+  gl.enable(gl.DEPTH_TEST);
+}
+
+</script>
+  </head>
+  <body onload="draw();">
+    <canvas id="glCanvas"></canvas>
+  </body>
+</html>
