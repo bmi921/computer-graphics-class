@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="lightgl.js"></script>
+
+    <!-- 頂点シェーダ -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+      /*
+        頂点シェーダ: 各ピクセルに対応する初期レイの方向を計算する
+        レイはカメラから画面のピクセルに向かって飛ばされる仮想の光線
+        各ピクセルごとに方向が異なるため、視錐台の四隅のレイを補間して計算
+        （レイ：視点と物体（シーン）を結ぶ「仮想的な光の経路」を表す）
+      */
+      uniform vec3 ray00;   // カメラ視錐台の左下コーナーのレイ
+      uniform vec3 ray10;   // カメラ視錐台の右下コーナーのレイ
+      uniform vec3 ray01;   // カメラ視錐台の左上コーナーのレイ
+      uniform vec3 ray11;   // カメラ視錐台の右上コーナーのレイ
+      varying vec3 initialRay; // フラグメントシェーダに渡す初期レイの方向
+
+      void main() {
+        /* ピクセルの正規化座標 (0.0〜1.0) を計算 */
+        vec2 t = gl_Vertex.xy * 0.5 + 0.5;
+
+        /* 視錐台の四隅のレイを補間して、各ピクセルごとのレイ方向を計算 */
+        initialRay = mix(mix(ray00, ray10, t.x), mix(ray01, ray11, t.x), t.y);
+
+        /* 頂点位置をそのまま設定 */
+        gl_Position = gl_Vertex;
+      }
+    </script>
+
+    <!-- フラグメントシェーダ -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      /*
+        フラグメントシェーダ: レイトレーシングを用いてシーンを描画
+        レイのオブジェクトとの交差を計算し、色や影を決定
+      */
+      const float INFINITY = 1.0e9; // 交差が無い場合の無限大値
+      uniform vec3 eye;             // カメラの位置
+      uniform vec3 lightPos;        // 光源の位置
+      varying vec3 initialRay;      // 各ピクセルの初期レイの方向
+
+      uniform vec3 sphereCenter;    // 球体の中心
+      uniform float sphereRadius;   // 球体の半径
+
+      /*
+        球との交差を計算する関数
+        - origin: レイの開始点
+        - ray: レイの方向
+        - center: 球の中心
+        - radius: 球の半径
+        戻り値: 交差がある場合、レイの交差距離。無い場合は INFINITY。
+      */
+      float intersectSphere(vec3 origin, vec3 ray, vec3 center, float radius) {
+        vec3 toSphere = origin - center;       // 球の中心からレイの開始点へのベクトル
+        float a = dot(ray, ray);              // レイの方向ベクトルの大きさ
+        float b = 2.0 * dot(toSphere, ray);   // レイ方向と球中心へのベクトルの相互作用
+        float c = dot(toSphere, toSphere) - radius * radius; // 球の方程式
+        float discriminant = b * b - 4.0 * a * c; // 判別式で交差の有無を判定
+        if (discriminant > 0.0) {
+          float t = (-b - sqrt(discriminant)) / (2.0 * a);
+          if (t > 0.0) return t; // 交差距離を返す（レイの正方向のみ）
+        }
+        return INFINITY; // 交差なし
+      }
+
+      /*
+        シャドウ判定
+        - point: レイが交差した点
+        - lightDir: 光源方向へのベクトル
+        戻り値: true (影にある), false (影にない)
+      */
+      bool inShadow(vec3 point, vec3 lightDir) {
+        // シャドウレイを光源方向に飛ばし、他のオブジェクトと交差するか確認
+        float t = intersectSphere(point + lightDir * 0.001, lightDir, sphereCenter, sphereRadius);
+        return t < length(lightDir); // 他のオブジェクトに遮られた場合は影
+      }
+
+      void main() {
+        vec3 origin = eye;      // レイの開始点（カメラ位置）
+        vec3 ray = initialRay;  // 現在のレイの方向
+        vec3 color = vec3(0.0); // 最終的に出力される色
+        vec3 mask = vec3(1.0);  // 光強度の減衰を管理
+
+        // 最大2回のバウンス（反射）をシミュレート
+        for (int bounce = 0; bounce < 2; bounce++) {
+          float planeT = -origin.y / ray.y; // 地面との交差距離
+          vec3 hit = origin + ray * planeT; // 地面との交差点
+          if (planeT < 0.0 || abs(hit.x) > 4.0 || abs(hit.z) > 4.0) planeT = INFINITY;
+
+          float sphereT = intersectSphere(origin, ray, sphereCenter, sphereRadius); // 球との交差距離
+          float t = min(planeT, sphereT); // 最も近い交差点を選択
+
+          if (t == INFINITY) {
+            color += mask; // 背景色（白）を設定
+            break;
+          }
+
+          hit = origin + ray * t; // 最も近い交差点を計算
+          if (t == planeT) { // 地面との交差
+            vec3 lightDir = normalize(lightPos - hit); // 光源方向
+            bool shadow = inShadow(hit, lightDir); // シャドウ判定
+            vec3 c = fract(hit * 0.5) - 0.5;
+            float checkerboard = c.x * c.z > 0.0 ? 1.0 : 0.0;
+            color += vec3(1.0, checkerboard, 0.0) * mask * (shadow ? 0.5 : 1.0); // 影なら暗く
+            break;
+          } else { // 球との交差
+            vec3 normal = (hit - sphereCenter) / sphereRadius; // 球の法線ベクトル
+            vec3 lightDir = normalize(lightPos - hit); // 光源方向
+            bool shadow = inShadow(hit, lightDir); // シャドウ判定
+            mask *= 0.8 * (0.5 + 0.5 * max(0.0, normal.y)) * (shadow ? 0.5 : 1.0); // 影と減衰
+            ray = reflect(ray, normal); // 新しい反射レイ
+            origin = hit; // レイの開始点を更新
+          }
+        }
+
+        gl_FragColor = vec4(color, 1.0); // 計算した色を出力
+      }
+    </script>
+
+    <script>
+      let angleX = 30,
+        angleY = 10; // 初期カメラ角度
+      const gl = GL.create(); // WebGLコンテキストの作成
+      const mesh = GL.Mesh.plane(); // 平面のメッシュ
+      const shader = new GL.Shader("vertexShader", "fragmentShader"); // シェーダーの適用
+
+      // マウス操作
+      gl.onmousemove = function (e) {
+        if (e.dragging) {
+          angleY += e.deltaX; // Y軸の回転
+          angleX += e.deltaY; // X軸の回転
+          angleX = Math.max(-90, Math.min(90, angleX)); // X軸回転の制限
+          gl.ondraw(); // 再描画
+        }
+      };
+      // シーンの描画
+      gl.ondraw = function () {
+        gl.loadIdentity(); // モデルビュー行列をリセット
+        gl.translate(0, 0, -10); // カメラを後方に移動
+        gl.rotate(angleX, 1, 0, 0); // X軸回転
+        gl.rotate(angleY, 0, 1, 0); // Y軸回転
+
+        const w = gl.canvas.width;
+        const h = gl.canvas.height;
+        const tracer = new GL.Raytracer();
+
+        shader.uniforms({
+          eye: tracer.eye, // カメラ位置
+          ray00: tracer.getRayForPixel(0, h), // 左下レイ
+          ray10: tracer.getRayForPixel(w, h), // 右下レイ
+          ray01: tracer.getRayForPixel(0, 0), // 左上レイ
+          ray11: tracer.getRayForPixel(w, 0), // 右上レイ
+          lightPos: [5.0, 10.0, 5.0], // 光源の位置
+          sphereCenter: [0.0, 1.6, 0], // 球の位置（球の中心）
+          sphereRadius: 1.5, // 球の半径
+        });
+
+        shader.draw(mesh); // メッシュを描画
+      };
+
+      gl.fullscreen(); // 全画面表示
+    </script>
+  </body>
+</html>

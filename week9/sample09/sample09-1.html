@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="lightgl.js"></script>
+
+    <!-- 頂点シェーダーの定義 -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+      // フラグメントシェーダに渡すテクスチャ座標(uv座標)を宣言
+      varying vec2 coord;
+
+      void main() {
+        // テクスチャ座標 (gl_TexCoord.xy) をフラグメントシェーダに渡す
+        coord = gl_TexCoord.xy;
+
+        // 頂点位置を投影変換行列に基づき変換して設定
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+      }
+    </script>
+
+    <!-- フラグメントシェーダの定義 -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      // テクスチャデータを参照するための変数（サンプラー）
+      uniform sampler2D texture;
+      // 頂点シェーダから渡されるテクスチャ座標
+      varying vec2 coord;
+
+      void main() {
+        // テクスチャ座標 (coord) を使用してテクスチャの色をピクセルの色として設定
+        gl_FragColor = texture2D(texture, coord);
+
+        // texture2D(sampler2D sampler, vec2 coord)
+        // 指定したUV座標 (coord) を基に2Dテクスチャ (sampler) から色を取得
+        // 引数: - sampler: テクスチャオブジェクト (sampler2D型)
+        //       - coord: テクスチャ座標 (0.0-1.0)
+        // 戻り値: - vec4型: サンプリングされたピクセルのRGBA色
+      }
+    </script>
+
+    <script>
+      let angle = 0;
+      let gl = GL.create();
+
+      // 平面のメッシュを作成 (テクスチャ座標を持つ設定)
+      const mesh = GL.Mesh.plane({ coords: true });
+
+      // 外部から画像ファイルを読み込んでテクスチャを生成
+      const texture = GL.Texture.fromURL("UVChecker.png");
+
+      // 頂点シェーダとフラグメントシェーダを使用してシェーダを作成
+      const shader = new GL.Shader("vertexShader", "fragmentShader");
+
+      gl.onupdate = function (seconds) {
+        angle += 45 * seconds;
+      };
+
+      gl.ondraw = function () {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.loadIdentity();
+        gl.translate(0, 0, -5);
+        gl.rotate(30, 1, 0, 0);
+        gl.rotate(angle, 0, 1, 0);
+
+        // テクスチャをテクスチャユニット0に関連付ける（バインド）
+        // これにより，描画時にこのテクスチャを使用できるようにする
+        texture.bind(0);
+
+        // シェーダにテクスチャユニット0を割り当てる
+        // シェーダ内のサンプラー変数がテクスチャユニット0を参照するよう指定
+        shader.uniforms({
+          texture: 0,
+        });
+
+        // メッシュを描画
+        shader.draw(mesh);
+      };
+
+      gl.fullscreen();
+      gl.animate();
+    </script>
+  </body>
+</html>
