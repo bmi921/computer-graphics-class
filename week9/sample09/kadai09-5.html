@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="lightgl.js"></script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+      varying vec2 coord;
+      void main() {
+        coord = gl_TexCoord.xy;
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      uniform sampler2D texture;
+      varying vec2 coord;
+      void main() {
+        gl_FragColor = texture2D(texture, coord);
+      }
+    </script>
+
+    <script>
+      let angle = 0;
+      let gl = GL.create();
+      let angleX = 30,
+        angleY = 20;
+
+      const mesh = GL.Mesh.cube({ coords: true });
+      const textures = [
+        GL.Texture.fromURL("grass.jpeg"),
+        GL.Texture.fromURL("rock.jpeg"),
+        GL.Texture.fromURL("yuzu-cat.jpg"),
+      ];
+      const shader = new GL.Shader("vertexShader", "fragmentShader");
+
+      gl.onmousemove = function (e) {
+        if (e.dragging) {
+          angleY += e.deltaX;
+          angleX += e.deltaY;
+        }
+      };
+      gl.ondraw = function () {
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.loadIdentity();
+
+        gl.translate(0, 0, -10);
+
+        gl.rotate(angleX, 1, 0, 0);
+        gl.rotate(angleY, 0, 1, 0);
+
+        // 1
+        gl.pushMatrix();
+        gl.translate(3, 0, 0);
+        textures[0].bind();
+        shader
+          .uniforms({
+            texture: 0,
+          })
+          .draw(mesh);
+        gl.popMatrix();
+
+        // 2
+        gl.pushMatrix();
+        gl.translate(-3, 0, 0);
+        textures[1].bind();
+        shader
+          .uniforms({
+            texture: 0,
+          })
+          .draw(mesh);
+        gl.popMatrix();
+
+        // 3
+        gl.pushMatrix();
+        textures[2].bind();
+        shader
+          .uniforms({
+            texture: 0,
+          })
+          .draw(mesh);
+        gl.popMatrix();
+      };
+
+      gl.fullscreen();
+      gl.animate();
+      gl.enable(gl.DEPTH_TEST);
+    </script>
+  </body>
+</html>

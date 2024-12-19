@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <!-- LightGL.jsライブラリを読み込む -->
+    <script src="lightgl.js"></script>
+
+    <!-- 頂点シェーダー -->
+    <script id="vertexShader" type="x-shader/x-vertex">
+      varying vec2 coord; // テクスチャ座標
+      void main() {
+        coord = gl_TexCoord.xy; // 頂点のテクスチャ座標をフラグメントシェーダーに渡す
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex; // 頂点の位置を変換
+      }
+    </script>
+
+    <!-- フラグメントシェーダー -->
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      uniform sampler2D texture; // テクスチャのサンプラー
+      varying vec2 coord; // 頂点シェーダーから渡されるテクスチャ座標
+      void main() {
+        gl_FragColor = texture2D(texture, coord); // テクスチャの色をピクセルに適用
+      }
+    </script>
+
+    <script>
+      let angleX = 30,
+        angleY = 20;
+
+      // WebGLコンテキストを作成
+      let gl = GL.create();
+
+      // 立方体のメッシュを生成（6面のテクスチャ座標を定義）
+      const cube = GL.Mesh.plane({ coords: true });
+
+      // 6つのテクスチャをロード
+      const textures = [
+        GL.Texture.fromURL("./dice/1.png"),
+        GL.Texture.fromURL("./dice/6.png"),
+        GL.Texture.fromURL("./dice/3.png"),
+        GL.Texture.fromURL("./dice/4.png"),
+        GL.Texture.fromURL("./dice/5.png"),
+        GL.Texture.fromURL("./dice/2.png"),
+      ];
+
+      // シェーダーを作成
+      const shader = new GL.Shader("vertexShader", "fragmentShader");
+
+      //マウスドラッグ
+      gl.onmousemove = function (e) {
+        if (e.dragging) {
+          angleY += e.deltaX;
+          angleX += e.deltaY;
+        }
+      };
+
+      // 描画処理
+      gl.ondraw = function () {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.loadIdentity();
+        gl.translate(0, 0, -8);
+        gl.rotate(angleX, 1, 0, 0);
+        gl.rotate(angleY, 0, 1, 0);
+
+        // 各面を描画
+        for (let i = 0; i < 6; i++) {
+          gl.pushMatrix();
+          // 各面の描画位置を調整
+          switch (i) {
+            case 0:
+              gl.translate(0, 0, 1);
+              break; // 前面
+            case 1:
+              gl.translate(0, 0, -1);
+              gl.rotate(180, 0, 1, 0);
+              break; // 背面
+            case 2:
+              gl.translate(0, 1, 0);
+              gl.rotate(-90, 1, 0, 0);
+              break; // 上面
+            case 3:
+              gl.translate(0, -1, 0);
+              gl.rotate(90, 1, 0, 0);
+              break; // 底面
+            case 4:
+              gl.translate(1, 0, 0);
+              gl.rotate(90, 0, 1, 0);
+              break; // 右側面
+            case 5:
+              gl.translate(-1, 0, 0);
+              gl.rotate(-90, 0, 1, 0);
+              break; // 左側面
+          }
+
+          // テクスチャをバインド
+          textures[i].bind(0);
+
+          // メッシュを描画
+          shader
+            .uniforms({
+              texture: 0, // シェーダーにテクスチャを指定
+            })
+            .draw(cube);
+
+          gl.popMatrix();
+        }
+      };
+
+      gl.fullscreen();
+      gl.animate();
+      gl.enable(gl.DEPTH_TEST);
+    </script>
+  </body>
+</html>

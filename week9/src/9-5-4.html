@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="lightgl.js"></script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+      varying vec2 coord;
+      void main() {
+        coord = gl_TexCoord.xy;
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      uniform sampler2D texture;
+      varying vec2 coord;
+      void main() {
+        gl_FragColor = texture2D(texture, coord);
+      }
+    </script>
+
+    <script>
+      let angle = 0;
+      let gl = GL.create();
+      let angleX = 30,
+        angleY = 20;
+
+      const mesh = GL.Mesh.cube({ coords: true });
+      const textures = [
+        GL.Texture.fromURL("../images/grass.jpeg"),
+        GL.Texture.fromURL("../images/rock.jpeg"),
+        GL.Texture.fromURL("../images/yuzu-cat.jpg"),
+        GL.Texture.fromURL("../images/water.jpeg"),
+      ];
+      const shader = new GL.Shader("vertexShader", "fragmentShader");
+
+      gl.onmousemove = function (e) {
+        if (e.dragging) {
+          angleY += e.deltaX;
+          angleX += e.deltaY;
+        }
+      };
+      gl.ondraw = function () {
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.loadIdentity();
+
+        gl.translate(0, 0, -10);
+
+        gl.rotate(angleX, 1, 0, 0);
+        gl.rotate(angleY, 0, 1, 0);
+
+        // ground
+        // 地面を生成
+        for (let x = -10; x <= 10; x += 2) {
+          for (let z = -10; z <= 10; z += 2) {
+            gl.pushMatrix();
+            gl.translate(x, -2, z); // x方向、z方向に2マスずつ配置
+            textures[0].bind(); // 地面用のテクスチャをバインド
+            shader
+              .uniforms({
+                texture: 0,
+              })
+              .draw(mesh); // メッシュを描画
+            gl.popMatrix();
+          }
+        }
+
+        // // 池の縁
+
+        for (let i = -2; i <= 2; i++) {
+          for (let j = -2; j <= 2; j++) {
+            if (Math.abs(i) === 2 || Math.abs(j) === 2) {
+              gl.pushMatrix();
+              gl.scale(1, 0.8, 1);
+              gl.translate(i * 2, 0, j * 2); // 水の位置を3x3で配置
+              textures[1].bind();
+              shader
+                .uniforms({
+                  texture: 0,
+                })
+                .draw(mesh); // 水を描画
+              gl.popMatrix();
+            }
+          }
+        }
+
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            gl.pushMatrix();
+            gl.translate(i * 2, 0, j * 2); // 水の位置を3x3で配置
+            gl.scale(1, 0.6, 1);
+            textures[3].bind();
+            shader
+              .uniforms({
+                texture: 0,
+              })
+              .draw(mesh); // 水を描画
+            gl.popMatrix();
+          }
+        }
+      };
+
+      gl.fullscreen();
+      gl.animate();
+      gl.enable(gl.DEPTH_TEST);
+    </script>
+  </body>
+</html>

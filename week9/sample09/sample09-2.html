@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="lightgl.js"></script>
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+      varying vec2 coord;
+      void main() {
+        coord = gl_TexCoord.xy;
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+      }
+    </script>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      uniform sampler2D texture;
+      varying vec2 coord;
+      void main() {
+        gl_FragColor = texture2D(texture, coord);
+      }
+    </script>
+
+    <script>
+      let angle = 0;
+      let gl = GL.create();
+      let angleX = 30,
+        angleY = 20;
+
+      const mesh = GL.Mesh.cube({ coords: true });
+      const texture = GL.Texture.fromURL("../images/yuzu-cat.jpg");
+      const shader = new GL.Shader("vertexShader", "fragmentShader");
+
+      gl.onmousemove = function (e) {
+        if (e.dragging) {
+          angleY += e.deltaX;
+          angleX += e.deltaY;
+        }
+      };
+      gl.ondraw = function () {
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.loadIdentity();
+        gl.translate(0, 0, -5);
+        gl.rotate(angleX, 1, 0, 0);
+        gl.rotate(angleY, 0, 1, 0);
+
+        texture.bind();
+        shader
+          .uniforms({
+            texture: 0,
+          })
+          .draw(mesh);
+      };
+
+      gl.fullscreen();
+      gl.animate();
+      gl.enable(gl.DEPTH_TEST);
+    </script>
+  </body>
+</html>
