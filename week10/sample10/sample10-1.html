@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script src="lightgl.js"></script>
+
+    <!-- テクスチャマッピング用のシェーダセット -->
+    <script id="vertexShader1" type="x-shader/x-vertex">
+      varying vec2 coord;         // フラグメントシェーダに渡すテクスチャ座標(uv座標)を宣言
+      void main() {
+        coord = gl_TexCoord.xy;   // テクスチャ座標 (gl_TexCoord.xy) をフラグメントシェーダに渡す
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;   // 頂点位置を投影変換行列に基づき変換して設定
+      }
+    </script>
+    <script id="fragmentShader1" type="x-shader/x-fragment">
+      uniform sampler2D texture;    // テクスチャデータを参照するための変数（サンプラー）
+      varying vec2 coord;           // 頂点シェーダから渡されるテクスチャ座標
+      void main() {
+        gl_FragColor = texture2D(texture, coord); // テクスチャ座標 (coord) を使用してテクスチャの色をピクセルの色として設定
+      }
+    </script>
+
+    <!-- 光の表現用のシェーダセット -->
+    <script id="vertexShader2" type="x-shader/x-vertex">
+      varying vec3 normal;    // フラグメントシェーダに法線ベクトル渡すための変数
+      void main() {
+        normal = gl_NormalMatrix * gl_Normal;                     // 法線ベクトルをモデルビュー行列に変換
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;   // 頂点の座標を画面に投影
+      }
+    </script>
+    <script id="fragmentShader2" type="x-shader/x-fragment">
+      varying vec3 normal;      // 頂点シェーダから渡された法線ベクトル
+      void main() {
+        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));               // 光源の方向を単位ベクトル化
+        float intensity = max( dot(normalize(normal), lightDir), 0.0); // 法線ベクトルと光源方向の内積を計算（光の強さ）
+        gl_FragColor = vec4(intensity, 1.0, intensity, 1.0);    // ピクセルの色を計算（光の強さを反映）
+      }
+    </script>
+
+    <script>
+      let angle = 0;
+      let handAngle = 0; // 手の振り角度
+      let handDirection = 1; // 手の振り方向
+      let gl = GL.create();
+      let angleX = 30,
+        angleY = 20;
+      // ロボットの位置を制御する変数
+      let robotX = 0;
+      let robotZ = 0;
+
+      // メッシュデータを生成
+      const plane = GL.Mesh.plane({ coords: true }); // テクスチャ座標付きの平面
+      const cube = GL.Mesh.cube({ normals: true }); // 法線ベクトル付きの立方体
+      const sphere = GL.Mesh.sphere({ normals: true }); // 法線ベクトル付きの球
+
+      // テクスチャ画像を読み込む
+      const texture = GL.Texture.fromURL("../images/grass.jpg");
+
+      // シェーダプログラムを読み込んで初期化
+      const shader1 = new GL.Shader("vertexShader1", "fragmentShader1");
+      const shader2 = new GL.Shader("vertexShader2", "fragmentShader2");
+
+      // マウス操作による回転処理
+      gl.onmousemove = function (e) {
+        if (e.dragging) {
+          angleY += e.deltaX;
+          angleX += e.deltaY;
+        }
+      };
+
+      // キーボードの入力受け付ける
+      gl.onkeydown = function (s) {
+        // "W" キーでZ軸方向に前進
+        if (GL.keys.UP.W) {
+          robotZ -= 1; // Z軸方向に前進
+        }
+        // "S" キーでZ軸方向に後退
+        else if (GL.keys.UP.S) {
+          robotZ += 1; // Z軸方向に後退
+        }
+        // "A" キーでX軸方向に左移動
+        else if (GL.keys.A) {
+          robotX -= 1; // X軸方向に左移動
+        }
+        // "D" キーでX軸方向に右移動
+        else if (GL.keys.D) {
+          robotX += 1; // X軸方向に右移動
+          console.log("d");
+        }
+      };
+
+      // 描画処理の定義
+      gl.ondraw = function () {
+        gl.clearColor(1.0, 1.0, 1.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.loadIdentity();
+        gl.translate(0, 0, -20);
+        gl.rotate(angleX, 1, 0, 0);
+        gl.rotate(angleY, 0, 1, 0);
+
+        // --- 平面の描画（テクスチャマッピング）---
+        gl.pushMatrix();
+        gl.rotate(90, 1, 0, 0); // 平面をX軸回転して水平にする
+        gl.scale(10, 10, 10); // 平面を拡大
+        texture.bind(0); // テクスチャをバインド
+        shader1.uniforms({
+          texture: 0, // テクスチャユニット0をシェーダに渡す
+        });
+        shader1.draw(plane); // 平面を描画
+        gl.popMatrix();
+
+        // --- ロボットの描画　--------------
+        gl.pushMatrix();
+        gl.translate(robotX, 2, robotZ); // ロボットの位置を更新
+
+        shader2.draw(cube); // シェーダにより立方体を描画
+
+        // hands
+        gl.pushMatrix();
+        gl.translate(-1.5, 0, 0);
+        gl.rotate(handAngle, 0, 0, 1); // 手の振りに角度を適用
+        gl.rotate(45, 0, 0, 1);
+        gl.scale(0.7, 0.2, 0.2);
+        shader2.draw(cube);
+        gl.popMatrix();
+
+        gl.pushMatrix();
+        gl.translate(1.5, 0, 0);
+
+        gl.rotate(-handAngle, 0, 0, 1); // 手の振りに角度を適用
+        gl.rotate(-45, 0, 0, 1);
+        gl.scale(0.7, 0.2, 0.2);
+        shader2.draw(cube);
+        gl.popMatrix();
+
+        // foot
+        gl.pushMatrix();
+        gl.translate(0.5, -1.5, 0);
+        gl.rotate(90, 0, 0, 1);
+        gl.scale(0.7, 0.2, 0.2);
+        shader2.draw(cube);
+        gl.popMatrix();
+
+        gl.pushMatrix();
+        gl.translate(-0.5, -1.5, 0);
+        gl.rotate(90, 0, 0, 1);
+        gl.scale(0.7, 0.2, 0.2);
+        shader2.draw(cube);
+        gl.popMatrix();
+
+        // head
+        gl.pushMatrix();
+        gl.translate(0, 1, 0);
+        shader2.draw(sphere);
+        gl.popMatrix();
+
+        gl.popMatrix();
+      };
+
+      gl.fullscreen();
+      // アニメーション用の更新処理
+      gl.onupdate = function () {
+        handAngle += handDirection * 2; // 手の振り幅を増加
+        if (handAngle > 45 || handAngle < -45) {
+          handDirection *= -1; // 角度が一定範囲を超えたら反転
+        }
+      };
+      gl.animate();
+      gl.enable(gl.DEPTH_TEST);
+    </script>
+  </body>
+</html>
