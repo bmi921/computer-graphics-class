@@ -67,27 +67,6 @@
         }
       };
 
-      // キーボードの入力受け付ける
-      gl.onkeydown = function (s) {
-        // "W" キーでZ軸方向に前進
-        if (GL.keys.UP.W) {
-          robotZ -= 1; // Z軸方向に前進
-        }
-        // "S" キーでZ軸方向に後退
-        else if (GL.keys.UP.S) {
-          robotZ += 1; // Z軸方向に後退
-        }
-        // "A" キーでX軸方向に左移動
-        else if (GL.keys.A) {
-          robotX -= 1; // X軸方向に左移動
-        }
-        // "D" キーでX軸方向に右移動
-        else if (GL.keys.D) {
-          robotX += 1; // X軸方向に右移動
-          console.log("d");
-        }
-      };
-
       // 描画処理の定義
       gl.ondraw = function () {
         gl.clearColor(1.0, 1.0, 1.0, 1.0);
@@ -158,11 +137,17 @@
 
       gl.fullscreen();
       // アニメーション用の更新処理
-      gl.onupdate = function () {
-        handAngle += handDirection * 2; // 手の振り幅を増加
-        if (handAngle > 45 || handAngle < -45) {
+      gl.onupdate = function (s) {
+        handAngle += handDirection * 1; // 手の振り幅を増加
+        if (handAngle > 15 || handAngle < -45) {
           handDirection *= -1; // 角度が一定範囲を超えたら反転
         }
+        if (GL.keys.UP) robotZ -= 0.1;
+        if (GL.keys.DOWN) robotZ += 0.1;
+        if (GL.keys.LEFT) robotX -= 0.1;
+        if (GL.keys.RIGHT) robotX += 0.1;
+
+        if (GL.keys.X) zoom -= 0.01;
       };
       gl.animate();
       gl.enable(gl.DEPTH_TEST);
